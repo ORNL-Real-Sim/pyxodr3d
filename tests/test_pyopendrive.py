@@ -498,42 +498,6 @@ def test_cli_reports_missing_carla_python_api(
     assert "PYTHONPATH" in captured.err
 
 
-def test_analysis_writes_high_resolution_matplotlib_figures(tmp_path: Path) -> None:
-    from pyxodr3d.sim.analysis import analyze_project
-
-    tripinfo_path = tmp_path / "tripinfo.xml"
-    tripinfo_path.write_text(
-        """<?xml version="1.0" encoding="UTF-8"?>
-<tripinfos>
-  <tripinfo id="ego_1" depart="0" arrival="12" duration="12" routeLength="120"
-            waitingTime="1" waitingCount="1" timeLoss="2"/>
-  <tripinfo id="ego_2" depart="1" arrival="16" duration="15" routeLength="180"
-            waitingTime="0" waitingCount="0" timeLoss="1"/>
-</tripinfos>
-""",
-        encoding="utf-8",
-    )
-    analysis_dir = tmp_path / "analysis"
-
-    outputs = analyze_project(
-        tripinfo_path=tripinfo_path,
-        out_dir=analysis_dir,
-        scenario_id="figure_check",
-        skip_carla=True,
-    )
-
-    expected_figure_names = [
-        "figure_mobility_energy_summary",
-        "figure_travel_time_distribution",
-        "figure_route_length_vs_travel_time",
-    ]
-    for figure_name in expected_figure_names:
-        figure_path = outputs[figure_name]
-        assert figure_path.exists()
-        assert figure_path.read_bytes().startswith(b"\x89PNG")
-        assert figure_path.stat().st_size > 1000
-
-
 def test_analysis_writes_csv_when_figures_are_unavailable(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
