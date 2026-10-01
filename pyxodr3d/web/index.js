@@ -1,6 +1,6 @@
 import maplibregl from "https://esm.sh/maplibre-gl@5.24.0";
-import { Geoman } from "https://esm.sh/@geoman-io/maplibre-geoman-free@0.7.1";
-import { GeoEditor } from "https://esm.sh/maplibre-gl-geo-editor@0.7.3";
+import { Geoman } from "https://esm.sh/@geoman-io/maplibre-geoman-free@0.7.1?deps=maplibre-gl@5.24.0";
+import { GeoEditor } from "https://esm.sh/maplibre-gl-geo-editor@0.7.3?deps=maplibre-gl@5.24.0";
 import { odrObjectDefinitions } from "./static/odr-3d-objects.js?v=20260515_objects_color";
 
 const status = document.getElementById("status");
@@ -669,8 +669,6 @@ function setSpotlightPosition(left, top) {
   spotlight.style.left = `${nextLeft}px`;
   spotlight.style.top = `${nextTop}px`;
   spotlight.style.right = "auto";
-  localStorage.setItem("opendriveviewer_left", String(Math.round(nextLeft)));
-  localStorage.setItem("opendriveviewer_top", String(Math.round(nextTop)));
 }
 
 function setSpotlightLeftResize(left, width, top) {
@@ -682,8 +680,6 @@ function setSpotlightLeftResize(left, width, top) {
   spotlight.style.right = "auto";
   spotlight.style.top = `${nextTop}px`;
   spotlight.style.width = `${nextWidth}px`;
-  localStorage.setItem("opendriveviewer_left", String(Math.round(nextLeft)));
-  localStorage.setItem("opendriveviewer_top", String(Math.round(nextTop)));
   localStorage.setItem("opendriveviewer_width", String(Math.round(nextWidth)));
 }
 
@@ -692,11 +688,10 @@ function restoreSpotlightLayout() {
   if (Number.isFinite(storedWidth) && storedWidth > 0) {
     setSpotlightWidth(storedWidth);
   }
-  const storedLeft = Number(localStorage.getItem("opendriveviewer_left"));
-  const storedTop = Number(localStorage.getItem("opendriveviewer_top"));
-  if (Number.isFinite(storedLeft) && Number.isFinite(storedTop)) {
-    requestAnimationFrame(() => setSpotlightPosition(storedLeft, storedTop));
-  }
+  // Older versions restored arbitrary drag coordinates that could reopen the
+  // panel on the left. Let the responsive CSS anchor every new page on the right.
+  localStorage.removeItem("opendriveviewer_left");
+  localStorage.removeItem("opendriveviewer_top");
 }
 
 function setStatus(message, isError = false) {
@@ -1907,7 +1902,7 @@ function addEnvironmentObjectFromPolygon(geometry) {
   loadIntoEditor(currentGeoJson);
   setSpotlightFeature(feature);
   refreshFeatureSources();
-  setStatus(`Added environment object ${generatedId}. Edit name/type/height in OpenDriveViewer, then save to write it to OpenDRIVE.`);
+  setStatus(`Added environment object ${generatedId}. Edit name/type/height in OpenDrive 3D Viewer, then save to write it to OpenDRIVE.`);
   return feature;
 }
 
@@ -3149,9 +3144,6 @@ function startRightResize(event) {
     setSpotlightWidth(nextWidth);
     spotlight.style.right = `${anchoredRight}px`;
     spotlight.style.left = "auto";
-    const nextRect = spotlight.getBoundingClientRect();
-    localStorage.setItem("opendriveviewer_left", String(Math.round(nextRect.left)));
-    localStorage.setItem("opendriveviewer_top", String(Math.round(nextRect.top)));
   };
   const onPointerUp = () => {
     spotlightResizeHandleRight.removeEventListener("pointermove", onPointerMove);

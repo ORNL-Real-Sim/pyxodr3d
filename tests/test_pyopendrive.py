@@ -6,6 +6,7 @@ import json
 import math
 from pathlib import Path
 import shutil
+import subprocess
 import threading
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -683,6 +684,39 @@ def test_web_static_javascript_uses_module_mime_type() -> None:
         thread.join(timeout=5)
 
 
+def test_web_javascript_pins_editor_maplibre_dependency() -> None:
+    """Editor modules must use the same MapLibre version as the viewer."""
+    repo_root = Path(__file__).resolve().parents[1]
+    index_javascript = (repo_root / "pyxodr3d" / "web" / "index.js").read_text(
+        encoding="utf-8"
+    )
+
+    expected_import_urls = (
+        "https://esm.sh/@geoman-io/maplibre-geoman-free@0.7.1"
+        "?deps=maplibre-gl@5.24.0",
+        "https://esm.sh/maplibre-gl-geo-editor@0.7.3"
+        "?deps=maplibre-gl@5.24.0",
+    )
+    for import_url in expected_import_urls:
+        assert f'from "{import_url}"' in index_javascript
+
+
+def test_web_spotlight_panel_defaults_to_right_side() -> None:
+    """Saved drag coordinates must not override the right-side CSS layout."""
+    repo_root = Path(__file__).resolve().parents[1]
+    index_css = (repo_root / "pyxodr3d" / "web" / "index.css").read_text(
+        encoding="utf-8"
+    )
+    index_javascript = (repo_root / "pyxodr3d" / "web" / "index.js").read_text(
+        encoding="utf-8"
+    )
+    spotlight_rule = index_css.partition("#spotlight {")[2].partition("}")[0]
+
+    assert "right: 12px;" in spotlight_rule
+    assert 'localStorage.removeItem("opendriveviewer_left")' in index_javascript
+    assert 'localStorage.removeItem("opendriveviewer_top")' in index_javascript
+
+
 def test_xodr_web_viewer_background_thread_serves_network() -> None:
     """Background mode must still serve the startup network API."""
     from pyxodr3d.web import xodr_web_viewer
@@ -878,6 +912,22 @@ def test_real_chatt_file_smoke() -> None:
 
     graph = odr_map.getRoutingGraph()
     assert len(graph.edges) == 474
+
+
+def test_tutorial_runs_outside_repository_root(tmp_path: Path) -> None:
+    """The tutorial must resolve its bundled dataset independently of cwd."""
+    repo_root = Path(__file__).resolve().parents[1]
+    completed = subprocess.run(
+        [sys.executable, str(repo_root / "tutorial.py")],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "roads=189" in completed.stdout
 
 
 @pytest.mark.skipif(

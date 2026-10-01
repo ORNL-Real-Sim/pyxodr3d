@@ -1,15 +1,17 @@
 """Smoke-test the pure-Python OpenDRIVE port with the repository map.
 
-Run from the repository root:
+Run directly:
 
-    python -m pyxodr3d.example_chatt
+    python tutorial.py
 """
+
+from pathlib import Path
 
 import pyxodr3d as odr
 
 
 if __name__ == "__main__":
-    path_xodr = "./datasets/chatt.xodr"
+    path_xodr = Path(__file__).resolve().parent / "datasets" / "chatt.xodr"
     Map = odr.readXodr(path_xodr)
     x = 1377.14000000
     y = 221.29000000
