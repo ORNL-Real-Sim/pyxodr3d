@@ -1,6 +1,6 @@
-# pyopendrive
+# pyxodr3d
 
-`pyopendrive` is a Python package for reading, inspecting, and editing OpenDRIVE `.xodr` networks. Converted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
+`pyxodr3d` is a Python package for reading, inspecting, and editing OpenDRIVE `.xodr` networks. Converted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
 
 ## Features
 
@@ -56,7 +56,7 @@ If this is your first time using the package, think of the examples below as lit
 This reads a sample road map file and shows a few things that are inside it.
 
 ```python
-import pyopendrive as odr
+import pyxodr3d as odr
 
 Map = odr.readXodr("datasets/chatt.xodr")
 # Map = odr.OpenDriveMap()
@@ -72,7 +72,7 @@ print(Map.getRoad("1").name)
 This turns the map's coordinates into the kind of numbers used on a globe.
 
 ```python
-import pyopendrive as odr
+import pyxodr3d as odr
 
 x = 1377.14000000
 y = 221.29000000
@@ -81,7 +81,6 @@ lon, lat = Map.convertXY2LonLat(x, y)
 
 # Convert back to the map's original coordinate system
 x, y = Map.convertLonLat2XY(lon, lat)
-
 ```
 
 ### Open the Web Viewer
@@ -89,10 +88,9 @@ x, y = Map.convertLonLat2XY(lon, lat)
 This opens a browser window so you can look at the map visually.
 
 ```python
-import pyopendrive as odr
+import pyxodr3d as odr
 
 odr.xodr_web_viewer()
-
 ```
 
 ### Convert OpenDRIVE and SUMO files
@@ -100,7 +98,7 @@ odr.xodr_web_viewer()
 This shows how to move a map between OpenDRIVE and SUMO.
 
 ```python
-import pyopendrive as odr
+import pyxodr3d as odr
 
 path_xodr = "datasets/chatt.xodr"
 path_net = "datasets/chatt.net.xml"
@@ -112,7 +110,6 @@ sumo_net = xodr_to_net_xml(xodr_file, path_net)
 
 # Convert OpenDRIVE from a SUMO network file
 Map = xodr_from_net_xml(net_file, xodr_file)
-
 ```
 
 If `netconvert` is not available, the SUMO helpers will raise an error.
@@ -130,7 +127,7 @@ saved_path = Map.saveXodr("output/saved.xodr")
 This gathers a few counts and sample values so you can see what is in the road network.
 
 ```python
-import pyopendrive as odr
+import pyxodr3d as odr
 
 path_xodr = "datasets/chatt.xodr"
 
@@ -160,7 +157,6 @@ print(f"signals={signal_count}")
 print(f"routing_edges={len(graph.edges)}")
 print(f"sample_ref_xyz={xyz}")
 print(f"sample_surface_xyz={surface}")
-
 ```
 
 </details>

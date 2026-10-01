@@ -25,7 +25,7 @@ from __future__ import annotations
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-import pyopendrive as odr
+import pyxodr3d as odr
 
 
 xodr = odr.xodr

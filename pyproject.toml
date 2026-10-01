@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyopendrive"
+name = "pyxodr3d"
 version = "0.4.5"
 description = "Reading, inspecting, and converting OpenDRIVE .xodr networks. Converted from libOpenDRIVE (C++)(https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions."
 readme = { file = "README.md", content-type = "text/markdown" }
@@ -49,16 +49,16 @@ test = [
 ]
 
 [project.scripts]
-pyopendrive-sim = "pyopendrive.sim.cli:main"
+pyxodr3d-sim = "pyxodr3d.sim.cli:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["pyopendrive*"]
+include = ["pyxodr3d*"]
 
 [tool.setuptools.package-data]
-pyopendrive = [
+pyxodr3d = [
     "web/index.html",
     "web/index.css",
     "web/index.js",
@@ -71,7 +71,7 @@ pyopendrive = [
     "web/favicon.ico",
     "web/static/*",
 ]
-"pyopendrive.web" = [
+ "pyxodr3d.web" = [
     "index.html",
     "index.css",
     "index.js",

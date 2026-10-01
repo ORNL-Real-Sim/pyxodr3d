@@ -6,7 +6,7 @@
 ##############################################################
 
 
-import pyopendrive as odr
+import pyxodr3d as odr
 
 
 if __name__ == "__main__":
