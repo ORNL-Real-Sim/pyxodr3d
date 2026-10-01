@@ -1,8 +1,8 @@
 # Security Policy
 
-This policy outlines pyopendrive's security commitments and practices for users across different licensing and deployment models.
+This policy outlines pyxodr3d's security commitments and practices for users across different licensing and deployment models.
 
-To learn more about pyopendrive's security service level agreements (SLAs) and processes, please [contact us](mailto:luoxiangyong01@gmail.com).
+To learn more about pyxodr3d's security service level agreements (SLAs) and processes, please [contact us](mailto:luoxiangyong01@gmail.com).
 
 ## Security is everyone's responsibility
 

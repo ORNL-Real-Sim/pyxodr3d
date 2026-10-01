@@ -163,7 +163,7 @@ print(f"sample_surface_xyz={surface}")
 
 The repository includes a sample map at [datasets/chatt.xodr](datasets/chatt.xodr) and a simple smoke-test script at [tutorial.py](tutorial.py).
 
-There is also a browser-based viewer in [web](web) that can be opened locally or served from a static HTTP server. See [pyopendrive/web/README.md](pyopendrive/web/README.md) for viewer instructions.
+There is also a browser-based viewer in [web](web) that can be opened locally or served from a static HTTP server. See [pyxodr3d/web/README.md](pyxodr3d/web/README.md) for viewer instructions.
 
 ## Testing
 
@@ -173,7 +173,7 @@ Run the test suite with:
 pytest
 
 # or generate coverage report (pytest-cov requried)
-pytest --cov=pyopendrive --cov-report=html  --cov-report=term
+pytest --cov=pyxodr3d --cov-report=html  --cov-report=term
 
 # or generate pylint report (pylint required)
 pylint . --output=pylint_report.txt
@@ -183,6 +183,6 @@ The SUMO round-trip tests are skipped automatically when `netconvert` is not ins
 
 ## License
 
-`pyopendrive` is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.
+`pyxodr3d` is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.
 
 The repository also includes third-party assets under [third_party](third_party) with their own notices and licenses.

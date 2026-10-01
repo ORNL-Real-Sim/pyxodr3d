@@ -6,7 +6,7 @@ helpers, and optional SUMO conversion helpers.
 
 Typical usage example:
     ```python
-    import pyopendrive as odr
+    import pyxodr3d as odr
 
     odr_map = odr.load("network.xodr")
     first_road = odr_map.get_roads()[0]
@@ -16,7 +16,7 @@ Typical usage example:
 
 # Copyright 2026 Xiangyong Luo
 #
-# This file is part of pyopendrive.
+# This file is part of pyxodr3d.
 #
 # This file is adapted from libopendrive, originally licensed under the
 # Apache License, Version 2.0.
@@ -24,7 +24,7 @@ Typical usage example:
 # Modifications:
 # - Converted from C++ to Python.
 # - Refactored APIs for Python package usage.
-# - Integrated with the pyopendrive package and viewer workflow.
+# - Integrated with the pyxodr3d package and viewer workflow.
 #
 # Licensed under the Apache License, Version 2.0.
 # You may obtain a copy of the License at:

@@ -1,7 +1,7 @@
 # OpenDRIVE Web Editor
 
 This folder contains the browser editor for OpenDRIVE `.xodr` files. The current
-viewer is a Python-backed MapLibre GL application powered by `pyopendrive`.
+viewer is a Python-backed MapLibre GL application powered by `pyxodr3d`.
 
 ## Files
 
@@ -9,7 +9,7 @@ viewer is a Python-backed MapLibre GL application powered by `pyopendrive`.
 - `index.css` - shared page and panel styling.
 - `index.js` - MapLibre GL editor logic.
 - `__init__.py` - local HTTP API server and OpenDRIVE to GeoJSON converters.
-- `__main__.py` - command line entry point for `python -m pyopendrive.web`.
+- `__main__.py` - command line entry point for `python -m pyxodr3d.web`.
 - `data.xodr` - default startup network loaded when no `--xodr` path is given.
 - `static/`, `favicon.ico` - local UI assets.
 
@@ -18,7 +18,7 @@ viewer is a Python-backed MapLibre GL application powered by `pyopendrive`.
 From the repository root:
 
 ```powershell
-python -m pyopendrive.web --no-browser
+python -m pyxodr3d.web --no-browser
 ```
 
 Then open:
@@ -27,14 +27,14 @@ Then open:
 http://127.0.0.1:8765/
 ```
 
-The default map is `pyopendrive/web/data.xodr`. The page calls
+The default map is `pyxodr3d/web/data.xodr`. The page calls
 `/api/network` on startup, and the Python server returns the default network as
 MapLibre-ready GeoJSON.
 
 ### Command Line Arguments
 
 ```powershell
-python -m pyopendrive.web --host 127.0.0.1 --port 8765 --no-browser --xodr pyopendrive\web\data.xodr
+python -m pyxodr3d.web --host 127.0.0.1 --port 8765 --no-browser --xodr pyxodr3d\web\data.xodr
 ```
 
 - `--host` - network interface for the local server. The default is
@@ -44,18 +44,18 @@ python -m pyopendrive.web --host 127.0.0.1 --port 8765 --no-browser --xodr pyope
 - `--no-browser` - start the server without opening the browser automatically.
   This is useful when running from a terminal, test script, or remote session.
 - `--xodr` - OpenDRIVE file loaded at startup. If omitted, the viewer loads
-  `pyopendrive/web/data.xodr`.
+  `pyxodr3d/web/data.xodr`.
 
 To start with another map:
 
 ```powershell
-python -m pyopendrive.web --no-browser --xodr C:\path\to\map.xodr
+python -m pyxodr3d.web --no-browser --xodr C:\path\to\map.xodr
 ```
 
 To let Python pick a free port:
 
 ```powershell
-python -m pyopendrive.web --port 0
+python -m pyxodr3d.web --port 0
 ```
 
 The selected URL is printed to the terminal.
@@ -67,7 +67,7 @@ the HTTP server and returns both the server object and the URL, but it does not
 block by itself.
 
 ```python
-from pyopendrive.web import run_server
+from pyxodr3d.web import run_server
 
 server, url = run_server(
     host="127.0.0.1",
@@ -106,7 +106,7 @@ server, opens the browser, and keeps Python running while the local API is
 needed by the page.
 
 ```python
-from pyopendrive.web import xodr_web_viewer
+from pyxodr3d.web import xodr_web_viewer
 
 xodr_web_viewer(
     host="127.0.0.1",
@@ -134,7 +134,7 @@ Return value:
 
 ## Main Capabilities
 
-- Loads OpenDRIVE through `pyopendrive`.
+- Loads OpenDRIVE through `pyxodr3d`.
 - Converts road, lane, signal, post, and mast-arm geometry to lon/lat with
   `convertXY2LonLat`.
 - Displays lane-level polygons on a MapLibre world map.

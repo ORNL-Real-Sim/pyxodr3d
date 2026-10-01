@@ -1,10 +1,10 @@
 # Web viewer third-party licenses
 
-This directory contains license files for third-party JavaScript, CSS, font, and icon libraries used by the pyopendrive web viewer.
+This directory contains license files for third-party JavaScript, CSS, font, and icon libraries used by the pyxodr3d web viewer.
 
 ## Included Libraries
 
-The pyopendrive web viewer (`pyopendrive/web/`) uses the following open-source libraries:
+The pyxodr3d web viewer (`pyxodr3d/web/`) uses the following open-source libraries:
 
 ### Mapping & Editing
 - **MapLibre GL** (v5.7.1) - Web mapping library for OpenDRIVE visualization

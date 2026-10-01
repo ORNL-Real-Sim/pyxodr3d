@@ -2,7 +2,7 @@
 
 Run from the repository root:
 
-    python -m pyopendrive.example_chatt
+    python -m pyxodr3d.example_chatt
 """
 
 import pyxodr3d as odr

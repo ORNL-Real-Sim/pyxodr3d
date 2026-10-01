@@ -1,4 +1,4 @@
-"""Command-line interface for PyOpenDRIVE SUMO/CARLA simulation workflows."""
+"""Command-line interface for pyxodr3d SUMO/CARLA simulation workflows."""
 
 from __future__ import annotations
 
@@ -111,7 +111,7 @@ def build_sim_project(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the ``pyopendrive-sim`` command-line interface."""
+    """Run the ``pyxodr3d-sim`` command-line interface."""
 
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -168,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
             run_cosim(args.project)
             return 0
     except Exception as exc:
-        print(f"pyopendrive-sim error: {exc}", file=sys.stderr)
+        print(f"pyxodr3d-sim error: {exc}", file=sys.stderr)
         return 1
 
     parser.print_help()
@@ -422,7 +422,7 @@ def _sumo_dependency_messages(
         "Dependency check: SUMO is missing on this operating system. "
         f"Missing tool(s) for {purpose}: {', '.join(missing_tools)}. "
         f"These tool(s) are {urgency}. Install Eclipse SUMO and add its bin "
-        "folder to PATH, or set SUMO_HOME so PyOpenDRIVE can find SUMO."
+        "folder to PATH, or set SUMO_HOME so pyxodr3d can find SUMO."
     ]
 
 
@@ -510,7 +510,7 @@ def _read_project_config(project_dir: str | Path) -> dict[str, object]:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="pyopendrive-sim",
+        prog="pyxodr3d-sim",
         description="Build and analyze OpenDRIVE-based SUMO/CARLA simulation projects.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -593,14 +593,14 @@ def _print_build_next_steps(
     project_dir = result["project_dir"]
     print(f"Project built: {project_dir}")
     if args.build_sumo:
-        print(f"Run SUMO: pyopendrive-sim run-sumo --project {project_dir}")
+        print(f"Run SUMO: pyxodr3d-sim run-sumo --project {project_dir}")
     if args.build_carla:
-        print(f"Load CARLA world: pyopendrive-sim run-carla --project {project_dir}")
+        print(f"Load CARLA world: pyxodr3d-sim run-carla --project {project_dir}")
     if args.build_cosim:
-        print(f"Run co-simulation: pyopendrive-sim run-cosim --project {project_dir}")
+        print(f"Run co-simulation: pyxodr3d-sim run-cosim --project {project_dir}")
     print(
         "Analyze outputs: "
-        f"pyopendrive-sim analyze --project {project_dir} --out {project_dir}/analysis"
+        f"pyxodr3d-sim analyze --project {project_dir} --out {project_dir}/analysis"
     )
 
 
@@ -614,7 +614,7 @@ def _print_sumo_only_next_steps(
         print("Rebuild without --dry-run to execute SUMO.")
         print(
             "After a real SUMO run, analyze outputs with: "
-            f"pyopendrive-sim analyze --project {project_dir} "
+            f"pyxodr3d-sim analyze --project {project_dir} "
             f"--out {project_dir}/analysis --sumo-only"
         )
         return

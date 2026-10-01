@@ -12,7 +12,7 @@ Attributes:
 
 # Copyright 2026 Xiangyong Luo
 #
-# This file is part of pyopendrive.
+# This file is part of pyxodr3d.
 #
 # Licensed under the Apache License, Version 2.0.
 # You may obtain a copy of the License at:
@@ -38,11 +38,11 @@ from . import OpenDriveMap, readXodr
 if TYPE_CHECKING:
     import sumolib.net
 
-_SOURCE_NET_FILE_ATTR = "_pyopendrive_sumo_net_file"
-_TEMP_DIR_ATTR = "_pyopendrive_temp_dir"
-_ORIGINAL_NODE_ID_PARAM = "pyopendrive.original_node_id"
-_ORIGINAL_LINK_ID_PARAM = "pyopendrive.original_link_id"
-_ORIGINAL_LANE_ID_PARAM = "pyopendrive.original_lane_id"
+_SOURCE_NET_FILE_ATTR = "_pyxodr3d_sumo_net_file"
+_TEMP_DIR_ATTR = "_pyxodr3d_temp_dir"
+_ORIGINAL_NODE_ID_PARAM = "pyxodr3d.original_node_id"
+_ORIGINAL_LINK_ID_PARAM = "pyxodr3d.original_link_id"
+_ORIGINAL_LANE_ID_PARAM = "pyxodr3d.original_lane_id"
 
 
 def _require_sumolib():
@@ -100,7 +100,7 @@ def _run_netconvert(command: Sequence[str]) -> None:
 def _make_output_path(path: str | Path | None, suffix: str) -> tuple[Path, str | None]:
     if path is not None:
         return Path(path), None
-    temp_dir = tempfile.mkdtemp(prefix="pyopendrive_sumo_")
+    temp_dir = tempfile.mkdtemp(prefix="pyxodr3d_sumo_")
     return Path(temp_dir) / suffix, temp_dir
 
 
@@ -175,7 +175,7 @@ def xodr_from_net_xml(
     netconvert_options: Mapping[str, Any] | None = None,
     opendrive_map_kwargs: Mapping[str, Any] | None = None,
 ) -> OpenDriveMap:
-    """Convert a ``.net.xml`` file or ``sumolib.net.Net`` object to :class:`pyopendrive.OpenDriveMap`.
+    """Convert a ``.net.xml`` file or ``sumolib.net.Net`` object to :class:`pyxodr3d.OpenDriveMap`.
 
     ``sumolib.net.Net`` does not provide a native writer.  If ``net_file`` is not
     passed, this function first reuses the source file attached by
@@ -197,10 +197,10 @@ def xodr_from_net_xml(
         netconvert_options: Extra command-line options for ``netconvert`` as
             ``{"option": value}``.
         opendrive_map_kwargs: Extra keyword arguments passed to
-            :class:`pyopendrive.OpenDriveMap`.
+            :class:`pyxodr3d.OpenDriveMap`.
 
     Returns:
-        A :class:`pyopendrive.OpenDriveMap` loaded from the generated
+        A :class:`pyxodr3d.OpenDriveMap` loaded from the generated
         OpenDRIVE file.
 
     Raises:
@@ -226,9 +226,9 @@ def xodr_from_net_xml(
     setattr(odr_map, "sumo_net_file", str(source_net_file))
     setattr(odr_map, "xodr_file", str(output_file))
     if temp_dir is not None:
-        setattr(odr_map, "_pyopendrive_sumo_temp_dir", temp_dir)
+        setattr(odr_map, "_pyxodr3d_sumo_temp_dir", temp_dir)
     if output_temp_dir is not None:
-        setattr(odr_map, "_pyopendrive_xodr_temp_dir", output_temp_dir)
+        setattr(odr_map, "_pyxodr3d_xodr_temp_dir", output_temp_dir)
     return odr_map
 
 

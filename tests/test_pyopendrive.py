@@ -12,12 +12,12 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-# Add system path for imports from pyopendrive package
+# Add system path for imports from pyxodr3d package
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import pyopendrive as odr
+import pyxodr3d as odr
 
 
 SYNTHETIC_XODR = """<?xml version="1.0" encoding="UTF-8"?>
@@ -274,8 +274,8 @@ def test_open_drive_map_lon_lat_conversion_without_header_offset(
 
 
 def test_ego_select_existing_mode_highlights_selected_vehicle(tmp_path: Path) -> None:
-    from pyopendrive.sim.config import EgoVehicleConfig, ScenarioConfig
-    from pyopendrive.sim.sumo_builder import apply_ego_vehicle_config
+    from pyxodr3d.sim.config import EgoVehicleConfig, ScenarioConfig
+    from pyxodr3d.sim.sumo_builder import apply_ego_vehicle_config
 
     route_file = tmp_path / "routes.rou.xml"
     route_file.write_text(
@@ -308,8 +308,8 @@ def test_ego_select_existing_mode_highlights_selected_vehicle(tmp_path: Path) ->
 
 
 def test_ego_add_mode_supports_od_pairs_and_edge_routes(tmp_path: Path) -> None:
-    from pyopendrive.sim.config import EgoVehicleConfig, ScenarioConfig
-    from pyopendrive.sim.sumo_builder import apply_ego_vehicle_config
+    from pyxodr3d.sim.config import EgoVehicleConfig, ScenarioConfig
+    from pyxodr3d.sim.sumo_builder import apply_ego_vehicle_config
 
     route_file = tmp_path / "routes.rou.xml"
     route_file.write_text(
@@ -357,7 +357,7 @@ def test_ego_add_mode_supports_od_pairs_and_edge_routes(tmp_path: Path) -> None:
 def test_sumo_additional_sanitizer_removes_missing_lane_detectors(
     tmp_path: Path,
 ) -> None:
-    from pyopendrive.sim.sumo_builder import sanitize_sumo_project_additional_files
+    from pyxodr3d.sim.sumo_builder import sanitize_sumo_project_additional_files
 
     sumo_dir = tmp_path / "sumo"
     sumo_dir.mkdir()
@@ -405,7 +405,7 @@ def test_run_sumo_sanitizes_additional_files_before_launch(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from pyopendrive.sim import cli
+    from pyxodr3d.sim import cli
 
     sumo_dir = tmp_path / "sumo"
     sumo_dir.mkdir()
@@ -456,7 +456,7 @@ def test_cli_reports_missing_sumo_runtime(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from pyopendrive.sim import cli
+    from pyxodr3d.sim import cli
 
     sumo_dir = tmp_path / "sumo"
     sumo_dir.mkdir()
@@ -480,7 +480,7 @@ def test_cli_reports_missing_carla_python_api(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from pyopendrive.sim import cli
+    from pyxodr3d.sim import cli
 
     carla_dir = tmp_path / "carla"
     carla_dir.mkdir()
@@ -499,7 +499,7 @@ def test_cli_reports_missing_carla_python_api(
 
 
 def test_analysis_writes_high_resolution_matplotlib_figures(tmp_path: Path) -> None:
-    from pyopendrive.sim.analysis import analyze_project
+    from pyxodr3d.sim.analysis import analyze_project
 
     tripinfo_path = tmp_path / "tripinfo.xml"
     tripinfo_path.write_text(
@@ -538,7 +538,7 @@ def test_analysis_writes_csv_when_figures_are_unavailable(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from pyopendrive.sim import analysis
+    from pyxodr3d.sim import analysis
 
     tripinfo_path = tmp_path / "tripinfo.xml"
     tripinfo_path.write_text(
@@ -571,7 +571,7 @@ def test_analysis_writes_csv_when_figures_are_unavailable(
 
 
 def test_tripinfo_summary_reports_energy_without_pollutant_outputs() -> None:
-    from pyopendrive.sim.analysis import summarize_tripinfo
+    from pyxodr3d.sim.analysis import summarize_tripinfo
 
     rows: list[dict[str, object]] = [
         {
@@ -599,7 +599,7 @@ def test_tripinfo_summary_reports_energy_without_pollutant_outputs() -> None:
 
 
 def test_summarize_replicates_writes_energy_savings(tmp_path: Path) -> None:
-    from pyopendrive.sim.analysis import summarize_replicates
+    from pyxodr3d.sim.analysis import summarize_replicates
 
     baseline_summary = tmp_path / "baseline_summary.csv"
     optimized_summary = tmp_path / "optimized_summary.csv"
@@ -648,7 +648,7 @@ def test_open_drive_map_save_xodr_preserves_loaded_xml(
 
 
 def test_web_save_persists_dragged_lane_geometry(synthetic_file: Path) -> None:
-    from pyopendrive.web._editor import _ViewerState
+    from pyxodr3d.web._editor import _ViewerState
 
     state = _ViewerState(synthetic_file)
     payload = state.as_response()
@@ -690,7 +690,7 @@ def test_web_save_persists_dragged_lane_geometry(synthetic_file: Path) -> None:
 
 def test_web_package_exports_default_xodr() -> None:
     """The module CLI imports DEFAULT_XODR from the package namespace."""
-    from pyopendrive.web import DEFAULT_XODR
+    from pyxodr3d.web import DEFAULT_XODR
 
     assert DEFAULT_XODR.name == "data.xodr"
     assert DEFAULT_XODR.exists()
@@ -698,7 +698,7 @@ def test_web_package_exports_default_xodr() -> None:
 
 def test_web_static_javascript_uses_module_mime_type() -> None:
     """Browsers reject module scripts unless JavaScript has a JS MIME type."""
-    from pyopendrive.web import run_server
+    from pyxodr3d.web import run_server
 
     server, url = run_server(open_browser=False, port=0)
     thread = threading.Thread(target=server.serve_forever)
@@ -721,8 +721,8 @@ def test_web_static_javascript_uses_module_mime_type() -> None:
 
 def test_xodr_web_viewer_background_thread_serves_network() -> None:
     """Background mode must still serve the startup network API."""
-    from pyopendrive.web import xodr_web_viewer
-    from pyopendrive.web._editor import _ACTIVE_SERVERS
+    from pyxodr3d.web import xodr_web_viewer
+    from pyxodr3d.web._editor import _ACTIVE_SERVERS
 
     url = xodr_web_viewer(port=0, open_browser=False, block=False)
     server = _ACTIVE_SERVERS[-1]
@@ -938,10 +938,10 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     assert len(sumo_net.getEdges()) > 0
     assert sumo_net.getBoundary()[2] > sumo_net.getBoundary()[0]
     edge_280 = sumo_net.getEdge("280")
-    assert edge_280.getParam("pyopendrive.original_link_id") == "280"
-    assert edge_280.getLanes()[0].getParam("pyopendrive.original_lane_id") == "-1"
-    assert edge_280.getLanes()[1].getParam("pyopendrive.original_lane_id") == "-2"
-    assert sumo_net.getNode("1").getParam("pyopendrive.original_node_id") == "1"
+    assert edge_280.getParam("pyxodr3d.original_link_id") == "280"
+    assert edge_280.getLanes()[0].getParam("pyxodr3d.original_lane_id") == "-1"
+    assert edge_280.getLanes()[1].getParam("pyxodr3d.original_lane_id") == "-2"
+    assert sumo_net.getNode("1").getParam("pyxodr3d.original_node_id") == "1"
 
     roundtrip_map = odr.xodr_from_net_xml(
         net=sumo_net,
@@ -961,7 +961,7 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
 def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
     tmp_path: Path,
 ) -> None:
-    import pyopendrive.__xodr_sumo as xodr_sumo
+    import pyxodr3d.__xodr_sumo as xodr_sumo
 
     net_file = tmp_path / "network.net.xml"
     net_file.write_text(
@@ -1048,7 +1048,7 @@ def test_chatt_sumo_net_xml_converts_to_opendrive_map(tmp_path: Path) -> None:
 def test_xodr_from_net_xml_restores_road_references_to_planview_roads(
     tmp_path: Path,
 ) -> None:
-    import pyopendrive.__xodr_sumo as xodr_sumo
+    import pyxodr3d.__xodr_sumo as xodr_sumo
 
     net_file = tmp_path / "network.net.xml"
     net_file.write_text(

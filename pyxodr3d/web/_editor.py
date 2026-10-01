@@ -1,6 +1,6 @@
 """Local API server for the MapLibre OpenDRIVE editor.
 
-The browser understands MapLibre layers and GeoJSON.  pyopendrive understands
+The browser understands MapLibre layers and GeoJSON.  pyxodr3d understands
 OpenDRIVE roads, lanes, signals, and local ``x/y`` map coordinates.  This
 module sits between those two worlds:
 
@@ -116,7 +116,7 @@ def _road_feature(odr_map: Any, road: Any, eps: float = 2.0) -> dict[str, Any]:
             "junction": road.junction,
             "length": road.length,
             "editable": True,
-            "source": "pyopendrive",
+            "source": "pyxodr3d",
         },
         "geometry": {
             "type": "LineString",
@@ -228,7 +228,7 @@ def _lane_feature(
             "width": lane_width,
             "predecessor_keys": predecessor_keys,
             "successor_keys": successor_keys,
-            "source": "pyopendrive",
+            "source": "pyxodr3d",
         },
         "geometry": {
             "type": "Polygon",
@@ -403,7 +403,7 @@ def _signal_feature(odr_map: Any, road: Any, signal: Any) -> dict[str, Any]:
             "validities": _validity_properties(signal.lane_validities),
             "extrusion_base": max(0.0, z_offset),
             "extrusion_height": max(z_offset + max(signal_height, 1.0), 1.0),
-            "source": "pyopendrive",
+            "source": "pyxodr3d",
         },
         "geometry": {
             "type": "Polygon",
@@ -510,7 +510,7 @@ def _signal_support_object_feature(
             "validities": _validity_properties(obj.lane_validities),
             "extrusion_base": max(0.0, z_offset),
             "extrusion_height": max(z_offset + max(obj_height, 0.4), 0.4),
-            "source": "pyopendrive",
+            "source": "pyxodr3d",
         },
         "geometry": {
             "type": "Polygon",
@@ -659,7 +659,7 @@ def _lane_polygon_centerline_lon_lat(feature: dict[str, Any]) -> list[tuple[floa
 
 
 def _find_lane_for_feature(odr_map: Any, feature: dict[str, Any]) -> tuple[Any, Any] | None:
-    """Find the loaded pyopendrive road and lane for a browser lane feature."""
+    """Find the loaded pyxodr3d road and lane for a browser lane feature."""
     props = feature.get("properties") or {}
     road_id = str(props.get("road_id") or "")
     if not road_id:
@@ -1083,7 +1083,7 @@ class _ViewerState:
 
     def __init__(self, default_xodr: Path | None = None):
         self.lock = threading.Lock()
-        self.tmp_dir = tempfile.TemporaryDirectory(prefix="pyopendrive_web_")
+        self.tmp_dir = tempfile.TemporaryDirectory(prefix="pyxodr3d_web_")
         self.current_file: Path | None = None
         self.current_map: Any | None = None
         self.browser_sessions: set[str] = set()
@@ -1264,7 +1264,7 @@ def run_server(
     open_browser: bool = True,
     default_xodr: str | Path | None = DEFAULT_XODR,
 ) -> tuple[ThreadingHTTPServer, str]:
-    """Create and optionally open the pyopendrive MapLibre web server."""
+    """Create and optionally open the pyxodr3d MapLibre web server."""
     state = _ViewerState(Path(default_xodr) if default_xodr is not None else None)
 
     class Handler(_OpenDriveViewerHandler):
@@ -1309,7 +1309,7 @@ def xodr_web_viewer(
     )
     _ACTIVE_SERVERS.append(server)
     if block:
-        print(f"pyopendrive web viewer is running at {url}", flush=True)
+        print(f"pyxodr3d web viewer is running at {url}", flush=True)
         print("Press Ctrl+C to stop the viewer.", flush=True)
         try:
             server.serve_forever()

@@ -1,6 +1,6 @@
 """Local API server for the MapLibre OpenDRIVE editor.
 
-The browser understands MapLibre layers and GeoJSON.  pyopendrive understands
+The browser understands MapLibre layers and GeoJSON.  pyxodr3d understands
 OpenDRIVE roads, lanes, signals, and local ``x/y`` map coordinates.  This
 module sits between those two worlds:
 

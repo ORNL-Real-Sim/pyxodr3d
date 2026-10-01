@@ -1,7 +1,7 @@
-"""Command line entry point for the pyopendrive web editor.
+"""Command line entry point for the pyxodr3d web editor.
 
-Run this module with ``python -m pyopendrive.web``.  It starts the small local
-HTTP server defined in :mod:`pyopendrive.web` and keeps it alive until the user
+Run this module with ``python -m pyxodr3d.web``.  It starts the small local
+HTTP server defined in :mod:`pyxodr3d.web` and keeps it alive until the user
 presses Ctrl+C.
 """
 
@@ -15,7 +15,7 @@ from . import DEFAULT_XODR, run_server
 
 def main() -> None:
     """Parse command line options and serve the browser editor."""
-    parser = argparse.ArgumentParser(description="Run the pyopendrive web editor.")
+    parser = argparse.ArgumentParser(description="Run the pyxodr3d web editor.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=8765, type=int)
     parser.add_argument("--no-browser", action="store_true")
