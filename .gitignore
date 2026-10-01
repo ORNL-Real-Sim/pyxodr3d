@@ -7,6 +7,8 @@ __pycache__/
 **/**fcd.xml
 **/**tripinfo.xml
 
+**/paper/**
+
 # C extensions
 *.so
 
