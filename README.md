@@ -1,14 +1,14 @@
 # pyxodr3d
 
-`pyxodr3d` is a Python package for reading, inspecting, and editing OpenDRIVE `.xodr` networks. Converted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
+`OpenDRIVE 3D viewer and editor. OpenDRIVE to SUMO conversation and vise versa. Converted from libOpenDRIVE (C++)(https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.`
 
 ## Features
 
+- View OpenDRIVE network on 3D map.
+- Convert OpenDRIVE maps to SUMO networks and convert SUMO networks back to OpenDRIVE.
 - Parse OpenDRIVE files into an object model with roads, lanes, junctions, objects, and signals.
 - Query geometry, lane sections, road marks, routing graphs, and derived meshes.
 - Save loaded maps back to `.xodr`.
-- Convert OpenDRIVE maps to SUMO networks and convert SUMO networks back to OpenDRIVE.
-- Use the bundled browser viewer for exploring `.xodr` files locally.
 
 > [!NOTE]
 > This file is adapted from [libOpenDRIVE (C++)](https://github.com/pageldev/libOpenDRIVE) with additional modifications
