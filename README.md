@@ -1,6 +1,6 @@
 # pyxodr3d
 
-`OpenDRIVE 3D viewer and editor. OpenDRIVE to SUMO conversation and vise versa. Converted from libOpenDRIVE (C++)(https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.`
+OpenDRIVE 3D viewer and editor. OpenDRIVE to SUMO conversation and vise versa. Converted from libOpenDRIVE (C++)(https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions.
 
 ## Features
 
