@@ -3,9 +3,9 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pyopendrive"
+name = "pyxodr3d"
 version = "0.4.5"
-description = "Python tools from libOpenDrive for reading, inspecting, converting, and extending OpenDRIVE road networks with additional utility tools."
+description = "OpenDRIVE 3D viewer and editor. OpenDRIVE to SUMO conversation and vise versa. Converted from libOpenDRIVE (C++)(https://github.com/pageldev/libOpenDRIVE) to Python with multiple additions."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -19,6 +19,7 @@ keywords = [
     "road-network",
     "traffic-simulation",
     "viewer",
+    "3d",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,6 +40,7 @@ classifiers = [
 ]
 dependencies = [
     "loguru",
+    "matplotlib",
     "sumolib",
 ]
 
@@ -47,32 +49,41 @@ test = [
     "pytest==9.0.3",
 ]
 
+[project.scripts]
+pyxodr3d-sim = "pyxodr3d.sim.cli:main"
+
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["pyopendrive*"]
+include = ["pyxodr3d*"]
 
 [tool.setuptools.package-data]
-pyopendrive = [
+pyxodr3d = [
     "web/index.html",
+    "web/index.css",
+    "web/index.js",
+    "web/data.xodr",
     "web/README.md",
     "web/viewer.js",
     "web/viewer.wasm",
     "web/viewer.data",
     "web/viewer.local-assets.js",
     "web/favicon.ico",
-    "web/fonts/*",
+    "web/static/*",
 ]
-"pyopendrive.web" = [
+ "pyxodr3d.web" = [
     "index.html",
+    "index.css",
+    "index.js",
+    "data.xodr",
     "README.md",
     "viewer.js",
     "viewer.wasm",
     "viewer.data",
     "viewer.local-assets.js",
     "favicon.ico",
-    "fonts/*",
+    "static/*",
 ]
 
 [[tool.uv.index]]

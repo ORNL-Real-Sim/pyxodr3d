@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>OpenDrive 3D Viewer</title>
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="OpenDRIVE editor powered by pyxodr3d, MapLibre GL, and maplibre-gl-geo-editor."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@geoman-io/maplibre-geoman-free@0.7.1/dist/maplibre-geoman.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl-geo-editor@0.7.3/style.css" />
+    <link rel="stylesheet" href="./static/font-awesome.min.css" />
+    <link rel="stylesheet" href="./static/bootstrap.min.css" />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="loading_screen" class="fullscreen" aria-live="polite" aria-busy="true">
+      <p id="loading_screen_msg" class="centered">
+        <i class="fa fa-hourglass"></i>
+        <span id="loading_screen_msg_txt">Loading...</span>
+      </p>
+    </div>
+    <div id="toolbar">
+      <input id="xodr_file_input" type="file" accept=".xodr,.xml" />
+      <label for="xodr_file_input" class="btn btn-primary btn-sm">
+        <i class="fa fa-upload"></i>
+        Open .xodr
+      </label>
+      <button id="save_xodr_btn" type="button" class="btn btn-success btn-sm">
+        <i class="fa fa-save"></i>
+        Save .xodr
+      </button>
+      <button id="fit_btn" type="button" class="btn btn-default btn-sm">
+        <i class="fa fa-crosshairs"></i>
+        Fit
+      </button>
+      <button id="reload_btn" type="button" class="btn btn-default btn-sm">
+        <i class="fa fa-refresh"></i>
+        Reload
+      </button>
+    </div>
+    <div id="basemap_control">
+      <label for="basemap_select">Basemap</label>
+      <select id="basemap_select"></select>
+    </div>
+    <div id="spotlight">
+      <div id="spotlight_header">
+        <strong id="spotlight_title">OpenDrive 3D Viewer</strong>
+        <div id="spotlight_header_controls">
+          <button id="spotlight_toggle" type="button" title="Fold panel">-</button>
+        </div>
+      </div>
+      <div id="spotlight_content">
+        <div id="attribute_editor">
+          <strong id="attribute_editor_title">Selected Data</strong>
+          <div id="edit_actions">
+            <button id="add_lane_btn" type="button">Add Lane</button>
+            <button id="delete_feature_btn" type="button">Delete</button>
+            <button id="copy_lane_link_btn" type="button">Copy Lane Link</button>
+            <button id="add_signal_btn" type="button">Add Signal</button>
+            <button id="add_post_btn" type="button">Add Post</button>
+            <button id="add_mastarm_btn" type="button">Add Mast Arm</button>
+            <button id="undo_move_btn" type="button">Undo Move</button>
+          </div>
+          <div id="global_lane_width_control">
+            <label for="global_lane_width">LANE WIDTH</label>
+            <input id="global_lane_width" type="number" min="0.2" step="0.1" value="3.5" />
+          </div>
+          <div id="lane_arrow_size_control">
+            <label for="lane_arrow_size">ARROW SIZE</label>
+            <input id="lane_arrow_size" type="number" min="0.2" max="3" step="0.1" value="1" />
+          </div>
+          <button id="toggle_lane_arrows_btn" type="button">Hide Lane Arrows</button>
+          <div id="attribute_fields"></div>
+        </div>
+      </div>
+      <div id="spotlight_resize_handle_left" class="spotlight-resize-handle" title="Resize panel"></div>
+      <div id="spotlight_resize_handle_right" class="spotlight-resize-handle" title="Resize panel"></div>
+    </div>
+    <div id="status">Loading OpenDRIVE network...</div>
+    <div id="object_palette">
+      <strong>3D Objects</strong>
+      <div id="object_palette_grid"></div>
+    </div>
+    <script type="module" src="./index.js?v=20260602_mime"></script>
+  </body>
+</html>
+

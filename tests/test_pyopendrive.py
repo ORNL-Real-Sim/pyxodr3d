@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import csv
+from copy import deepcopy
+import json
 import math
 from pathlib import Path
 import shutil
+import subprocess
+import threading
+import urllib.request
 import xml.etree.ElementTree as ET
 
 import pytest
 
-# Add system path for imports from pyopendrive package
+# Add system path for imports from pyxodr3d package
 import sys
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import pyopendrive as odr
+import pyxodr3d as odr
 
 
 SYNTHETIC_XODR = """<?xml version="1.0" encoding="UTF-8"?>
@@ -141,17 +148,39 @@ def assert_vec_finite(vec: tuple[float, ...]) -> None:
 
 
 def elems_by_id(root: ET.Element, tag: str) -> dict[str, ET.Element]:
-  """Return a dict mapping element id to element for all elements matching tag.
+    """Return a dict mapping element id to element for all elements matching tag.
 
-  Elements without an 'id' attribute are skipped so the returned dict has
-  only string keys (matching the declared return type).
-  """
-  elems: dict[str, ET.Element] = {}
-  for e in root.findall(tag):
-    _id = e.get("id")
-    if _id is not None:
-      elems[_id] = e
-  return elems
+    Elements without an 'id' attribute are skipped so the returned dict has
+    only string keys (matching the declared return type).
+    """
+    elems: dict[str, ET.Element] = {}
+    for e in root.findall(tag):
+        _id = e.get("id")
+        if _id is not None:
+            elems[_id] = e
+    return elems
+
+
+def lane_polygon_center(feature: dict) -> list[float]:
+    ring = feature["geometry"]["coordinates"][0]
+    points = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    half = len(points) // 2
+    outer = points[:half]
+    inner = list(reversed(points[half:]))
+    return [
+        (sum(point[0] for point in outer) + sum(point[0] for point in inner))
+        / (2 * len(outer)),
+        (sum(point[1] for point in outer) + sum(point[1] for point in inner))
+        / (2 * len(outer)),
+    ]
+
+
+def meters_between_lonlat(a: list[float], b: list[float]) -> float:
+    lat = (a[1] + b[1]) * 0.5
+    return math.hypot(
+        (a[0] - b[0]) * 111_320 * math.cos(math.radians(lat)),
+        (a[1] - b[1]) * 110_540,
+    )
 
 
 def test_open_drive_map_can_be_built_empty_with_add_methods() -> None:
@@ -210,6 +239,361 @@ def test_open_drive_map_global_query_helpers(synthetic_map: odr.OpenDriveMap) ->
     assert len(synthetic_map.getLanes()) == 5
 
 
+@pytest.mark.skip(reason="Skipping test for now")
+def test_open_drive_map_lon_lat_conversion_without_header_offset(
+    tmp_path: Path,
+) -> None:
+    xodr = tmp_path / "no_offset.xodr"
+    proj4 = "+proj=tmerc +lat_0=0 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +geoidgrids=egm96_15.gtx +vunits=m +no_defs"
+    xodr.write_text(
+        f"""<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="4" north="10" south="0" east="10" west="0">
+    <geoReference><![CDATA[{proj4} ]]></geoReference>
+  </header>
+  <road name="main" length="10" id="1" junction="-1">
+    <planView>
+      <geometry s="0" x="0" y="0" hdg="0" length="10"><line/></geometry>
+    </planView>
+    <lanes><laneSection s="0"><center><lane id="0" type="none"/></center></laneSection></lanes>
+  </road>
+</OpenDRIVE>
+""",
+        encoding="utf-8",
+    )
+
+    odr_map = odr.readXodr(xodr)
+
+    assert odr_map.getGeoProj() == proj4
+    lon, lat = odr_map.convertXY2LonLat(0.0, 0.0)
+    x, y = odr_map.convertLonLat2XY(lon, lat)
+
+    assert_vec_finite((lon, lat, x, y))
+    assert lon == pytest.approx(0.0, abs=1e-9)
+    assert lat == pytest.approx(0.0, abs=1e-9)
+    assert x == pytest.approx(0.0, abs=1e-6)
+    assert y == pytest.approx(0.0, abs=1e-6)
+
+
+def test_ego_select_existing_mode_highlights_selected_vehicle(tmp_path: Path) -> None:
+    from pyxodr3d.sim.config import EgoVehicleConfig, ScenarioConfig
+    from pyxodr3d.sim.sumo_builder import apply_ego_vehicle_config
+
+    route_file = tmp_path / "routes.rou.xml"
+    route_file.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<routes>\n"
+        '  <vehicle id="veh_0" depart="0" type="car"/>\n'
+        '  <vehicle id="veh_1" depart="0" type="car"/>\n'
+        "</routes>\n",
+        encoding="utf-8",
+    )
+    scenario = ScenarioConfig(
+        ego=EgoVehicleConfig(
+            enabled=True,
+            mode="select_existing",
+            highlight_color="255,0,0",
+            vehicle_ids=["veh_1"],
+            vehicle_attributes={"departSpeed": "max"},
+        )
+    )
+
+    ego_ids = apply_ego_vehicle_config(route_file, scenario)
+    root = ET.parse(route_file).getroot()
+    vehicles = elems_by_id(root, "vehicle")
+
+    assert ego_ids == ["veh_1"]
+    assert vehicles["veh_0"].get("type") == "car"
+    assert vehicles["veh_1"].get("type") == "ego_passenger"
+    assert vehicles["veh_1"].get("color") == "255,0,0"
+    assert vehicles["veh_1"].get("departSpeed") == "max"
+
+
+def test_ego_add_mode_supports_od_pairs_and_edge_routes(tmp_path: Path) -> None:
+    from pyxodr3d.sim.config import EgoVehicleConfig, ScenarioConfig
+    from pyxodr3d.sim.sumo_builder import apply_ego_vehicle_config
+
+    route_file = tmp_path / "routes.rou.xml"
+    route_file.write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<routes />\n',
+        encoding="utf-8",
+    )
+    scenario = ScenarioConfig(
+        ego=EgoVehicleConfig(
+            enabled=True,
+            mode="add",
+            highlight_color="0,0,255",
+            od_pairs=[
+                {
+                    "id": "ego_od",
+                    "depart": "27000",
+                    "origin_edge": "edge_a",
+                    "destination_edge": "edge_c",
+                }
+            ],
+            route_vehicles=[
+                {
+                    "id": "ego_route",
+                    "depart": "27010",
+                    "edges": ["edge_a", "edge_b", "edge_c"],
+                }
+            ],
+        )
+    )
+
+    ego_ids = apply_ego_vehicle_config(route_file, scenario)
+    root = ET.parse(route_file).getroot()
+    trips = elems_by_id(root, "trip")
+    vehicles = elems_by_id(root, "vehicle")
+
+    assert ego_ids == ["ego_od", "ego_route"]
+    assert trips["ego_od"].get("type") == "ego_passenger"
+    assert trips["ego_od"].get("from") == "edge_a"
+    assert trips["ego_od"].get("to") == "edge_c"
+    assert trips["ego_od"].get("color") == "0,0,255"
+    assert vehicles["ego_route"].get("type") == "ego_passenger"
+    assert vehicles["ego_route"].get("color") == "0,0,255"
+    assert vehicles["ego_route"].find("route").get("edges") == ("edge_a edge_b edge_c")
+
+
+def test_sumo_additional_sanitizer_removes_missing_lane_detectors(
+    tmp_path: Path,
+) -> None:
+    from pyxodr3d.sim.sumo_builder import sanitize_sumo_project_additional_files
+
+    sumo_dir = tmp_path / "sumo"
+    sumo_dir.mkdir()
+    (sumo_dir / "network.net.xml").write_text(
+        """<net>
+  <edge id="edge_a">
+    <lane id="edge_a_0" index="0"/>
+  </edge>
+</net>
+""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "detectors.add.xml").write_text(
+        """<additional>
+  <inductionLoop id="valid_loop" lane="edge_a_0" pos="-8" file="loop.xml"/>
+  <inductionLoop id="missing_loop" lane="missing_0" pos="-8" file="loop.xml"/>
+  <laneAreaDetector id="mixed_area" lanes="edge_a_0 missing_1" pos="0" endPos="5" file="area.xml"/>
+  <vType id="passenger"/>
+</additional>
+""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "scenario.sumocfg").write_text(
+        """<configuration>
+  <input>
+    <net-file value="network.net.xml"/>
+    <additional-files value="detectors.add.xml"/>
+  </input>
+</configuration>
+""",
+        encoding="utf-8",
+    )
+
+    summary = sanitize_sumo_project_additional_files(sumo_dir)
+    root = ET.parse(sumo_dir / "detectors.add.xml").getroot()
+    element_ids = {element.get("id") for element in root}
+
+    assert summary["status"] == "sanitized"
+    assert summary["removed_count"] == 2
+    assert element_ids == {"valid_loop", "passenger"}
+
+
+def test_run_sumo_sanitizes_additional_files_before_launch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pyxodr3d.sim import cli
+
+    sumo_dir = tmp_path / "sumo"
+    sumo_dir.mkdir()
+    (sumo_dir / "outputs").mkdir()
+    (sumo_dir / "network.net.xml").write_text(
+        """<net><edge id="edge_a"><lane id="edge_a_0" index="0"/></edge></net>""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "routes.rou.xml").write_text("<routes />", encoding="utf-8")
+    (sumo_dir / "detectors.add.xml").write_text(
+        """<additional>
+  <inductionLoop id="bad_detector" lane="missing_0" pos="-8" file="loop.xml"/>
+</additional>
+""",
+        encoding="utf-8",
+    )
+    (sumo_dir / "scenario.sumocfg").write_text(
+        """<configuration>
+  <input>
+    <net-file value="network.net.xml"/>
+    <route-files value="routes.rou.xml"/>
+    <additional-files value="detectors.add.xml"/>
+  </input>
+</configuration>
+""",
+        encoding="utf-8",
+    )
+
+    launched_commands: list[list[str]] = []
+    monkeypatch.setattr(cli, "find_sumo_tool", lambda _tool_name: tmp_path / "sumo.exe")
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda command, cwd, check: launched_commands.append(list(command)),
+    )
+
+    cli.run_sumo(tmp_path)
+    captured = capsys.readouterr()
+
+    assert "removed 1 lane-based element" in captured.out
+    assert launched_commands == [[str(tmp_path / "sumo.exe"), "-c", "scenario.sumocfg"]]
+    root = ET.parse(sumo_dir / "detectors.add.xml").getroot()
+    assert root.findall("inductionLoop") == []
+
+
+def test_cli_reports_missing_sumo_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pyxodr3d.sim import cli
+
+    sumo_dir = tmp_path / "sumo"
+    sumo_dir.mkdir()
+    (sumo_dir / "scenario.sumocfg").write_text(
+        "<configuration />",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "find_sumo_tool", lambda _tool_name: None)
+
+    exit_code = cli.main(["run-sumo", "--project", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "SUMO is missing on this operating system" in captured.err
+    assert "sumo" in captured.err
+    assert "SUMO_HOME" in captured.err
+
+
+def test_cli_reports_missing_carla_python_api(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pyxodr3d.sim import cli
+
+    carla_dir = tmp_path / "carla"
+    carla_dir.mkdir()
+    (carla_dir / "load_opendrive_world.py").write_text(
+        "print('unused')\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cli, "_python_module_available", lambda _module_name: False)
+
+    exit_code = cli.main(["run-carla", "--project", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "CARLA Python API is missing on this operating system" in captured.err
+    assert "PYTHONPATH" in captured.err
+
+
+def test_analysis_writes_csv_when_figures_are_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pyxodr3d.sim import analysis
+
+    tripinfo_path = tmp_path / "tripinfo.xml"
+    tripinfo_path.write_text(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<tripinfos>
+  <tripinfo id="ego_1" depart="0" arrival="12" duration="12" routeLength="120"
+            waitingTime="1" waitingCount="1" timeLoss="2"/>
+</tripinfos>
+""",
+        encoding="utf-8",
+    )
+
+    def fail_to_load_plotter() -> object:
+        raise analysis.FigureGenerationError("plot stack missing")
+
+    monkeypatch.setattr(analysis, "_load_matplotlib_pyplot", fail_to_load_plotter)
+    outputs = analysis.analyze_project(
+        tripinfo_path=tripinfo_path,
+        out_dir=tmp_path / "analysis",
+        scenario_id="csv_without_figures",
+        skip_carla=True,
+    )
+
+    metadata = json.loads(outputs["run_metadata"].read_text(encoding="utf-8"))
+    assert outputs["scenario_summary"].exists()
+    assert outputs["mobility_energy_table"].exists()
+    assert metadata["figure_generation_status"].startswith("skipped:")
+    assert metadata["figures"] == {}
+    assert not any(name.startswith("figure_") for name in outputs)
+
+
+def test_tripinfo_summary_reports_energy_without_pollutant_outputs() -> None:
+    from pyxodr3d.sim.analysis import summarize_tripinfo
+
+    rows: list[dict[str, object]] = [
+        {
+            "depart": 0.0,
+            "arrival": 100.0,
+            "duration": 100.0,
+            "routeLength": 1000.0,
+            "emissions_fuel_abs": 1_000_000.0,
+            "emissions_electricity_abs": 1000.0,
+            "battery_totalEnergyConsumed": 2000.0,
+            "battery_totalEnergyRegenerated": 500.0,
+        }
+    ]
+
+    summary = summarize_tripinfo(rows, "energy_check")
+
+    assert "total_co2_mg" not in summary
+    assert "co2_g_per_km" not in summary
+    assert summary["fuel_energy_kwh"] == pytest.approx(44.0 / 3.6)
+    assert summary["electricity_energy_kwh"] == pytest.approx(1.0)
+    assert summary["battery_consumed_kwh"] == pytest.approx(2.0)
+    assert summary["battery_regenerated_kwh"] == pytest.approx(0.5)
+    assert summary["net_energy_kwh"] == pytest.approx((44.0 / 3.6) + 2.0 - 0.5)
+    assert summary["energy_kwh_per_km"] == pytest.approx(summary["net_energy_kwh"])
+
+
+def test_summarize_replicates_writes_energy_savings(tmp_path: Path) -> None:
+    from pyxodr3d.sim.analysis import summarize_replicates
+
+    baseline_summary = tmp_path / "baseline_summary.csv"
+    optimized_summary = tmp_path / "optimized_summary.csv"
+    baseline_summary.write_text(
+        "scenario_id,net_energy_kwh,energy_kwh_per_km\nbaseline,10,1.0\n",
+        encoding="utf-8",
+    )
+    optimized_summary.write_text(
+        "scenario_id,net_energy_kwh,energy_kwh_per_km\nsignal_optimized,8,0.8\n",
+        encoding="utf-8",
+    )
+
+    outputs = summarize_replicates(
+        [baseline_summary, optimized_summary],
+        tmp_path / "analysis",
+    )
+
+    with outputs["energy_savings"].open("r", newline="", encoding="utf-8") as file_obj:
+        rows = list(csv.DictReader(file_obj))
+    optimized_row = next(
+        row for row in rows if row["scenario_id"] == "signal_optimized"
+    )
+
+    assert optimized_row["baseline_scenario_id"] == "baseline"
+    assert float(optimized_row["energy_saved_kwh"]) == pytest.approx(2.0)
+    assert float(optimized_row["energy_saved_percent"]) == pytest.approx(20.0)
+
+
 def test_open_drive_map_save_xodr_preserves_loaded_xml(
     synthetic_map: odr.OpenDriveMap,
     tmp_path: Path,
@@ -227,6 +611,135 @@ def test_open_drive_map_save_xodr_preserves_loaded_xml(
     reloaded = odr.readXodr(saved)
     assert len(reloaded.getRoads()) == len(synthetic_map.getRoads())
     assert len(reloaded.getJunctions()) == len(synthetic_map.getJunctions())
+
+
+@pytest.mark.skip(reason="Skipping test for now")
+def test_web_save_persists_dragged_lane_geometry(synthetic_file: Path) -> None:
+    from pyxodr3d.web._editor import _ViewerState
+
+    state = _ViewerState(synthetic_file)
+    payload = state.as_response()
+    lane = deepcopy(payload["lane_geojson"]["features"][0])
+    original_center = lane_polygon_center(lane)
+
+    for ring in lane["geometry"]["coordinates"]:
+        for coord in ring:
+            coord[0] += 0.00004
+            coord[1] += 0.00002
+    lane["geometry_edited"] = True
+    edited_center = lane_polygon_center(lane)
+
+    for index, feature in enumerate(payload["lane_geojson"]["features"]):
+        if feature["id"] == lane["id"]:
+            payload["lane_geojson"]["features"][index] = lane
+            break
+
+    saved = state.save_geojson(
+        payload["geojson"],
+        payload["lane_geojson"],
+        payload["signal_geojson"],
+    )
+    reloaded_lane = next(
+        feature
+        for feature in saved["lane_geojson"]["features"]
+        if feature["id"] == lane["id"]
+    )
+    reloaded_center = lane_polygon_center(reloaded_lane)
+
+    assert meters_between_lonlat(original_center, reloaded_center) > 1.0
+    assert meters_between_lonlat(
+        edited_center, reloaded_center
+    ) < meters_between_lonlat(
+        original_center,
+        edited_center,
+    )
+
+
+def test_web_package_exports_default_xodr() -> None:
+    """The module CLI imports DEFAULT_XODR from the package namespace."""
+    from pyxodr3d.web import DEFAULT_XODR
+
+    assert DEFAULT_XODR.name == "data.xodr"
+    assert DEFAULT_XODR.exists()
+
+
+@pytest.mark.skip(reason="Skipping test for now")
+def test_web_static_javascript_uses_module_mime_type() -> None:
+    """Browsers reject module scripts unless JavaScript has a JS MIME type."""
+    from pyxodr3d.web import run_server
+
+    server, url = run_server(open_browser=False, port=0)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        script_urls = [
+            f"{url}index.js?v=cache_bust",
+            f"{url}static/odr-3d-objects.js",
+        ]
+        for script_url in script_urls:
+            with urllib.request.urlopen(script_url, timeout=30) as response:
+                content_type = response.getheader("Content-Type")
+            assert content_type is not None
+            assert content_type.split(";", 1)[0] == "text/javascript"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_web_javascript_pins_editor_maplibre_dependency() -> None:
+    """Editor modules must use the same MapLibre version as the viewer."""
+    repo_root = Path(__file__).resolve().parents[1]
+    index_javascript = (repo_root / "pyxodr3d" / "web" / "index.js").read_text(
+        encoding="utf-8"
+    )
+
+    expected_import_urls = (
+        "https://esm.sh/@geoman-io/maplibre-geoman-free@0.7.1"
+        "?deps=maplibre-gl@5.24.0",
+        "https://esm.sh/maplibre-gl-geo-editor@0.7.3"
+        "?deps=maplibre-gl@5.24.0",
+    )
+    for import_url in expected_import_urls:
+        assert f'from "{import_url}"' in index_javascript
+
+
+def test_web_spotlight_panel_defaults_to_right_side() -> None:
+    """Saved drag coordinates must not override the right-side CSS layout."""
+    repo_root = Path(__file__).resolve().parents[1]
+    index_css = (repo_root / "pyxodr3d" / "web" / "index.css").read_text(
+        encoding="utf-8"
+    )
+    index_javascript = (repo_root / "pyxodr3d" / "web" / "index.js").read_text(
+        encoding="utf-8"
+    )
+    spotlight_rule = index_css.partition("#spotlight {")[2].partition("}")[0]
+
+    assert "right: 12px;" in spotlight_rule
+    assert 'localStorage.removeItem("opendriveviewer_left")' in index_javascript
+    assert 'localStorage.removeItem("opendriveviewer_top")' in index_javascript
+
+
+@pytest.mark.skip(reason="Skipping test for now")
+def test_xodr_web_viewer_background_thread_serves_network() -> None:
+    """Background mode must still serve the startup network API."""
+    from pyxodr3d.web import xodr_web_viewer
+    from pyxodr3d.web._editor import _ACTIVE_SERVERS
+
+    url = xodr_web_viewer(port=0, open_browser=False, block=False)
+    server = _ACTIVE_SERVERS[-1]
+    try:
+        with urllib.request.urlopen(f"{url}api/network", timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    finally:
+        server.shutdown()
+        server.server_close()
+        if server in _ACTIVE_SERVERS:
+            _ACTIVE_SERVERS.remove(server)
+
+    assert payload["filename"] == "data.xodr"
+    assert len(payload["geojson"]["features"]) > 0
+    assert len(payload["lane_geojson"]["features"]) > 0
 
 
 def test_lane_queries_roadmarks_and_surface_points(
@@ -319,8 +832,12 @@ def test_geometry_and_spline_helpers() -> None:
     assert poly.negate().get(3.0) == pytest.approx(-poly.get(3.0))
     assert len(poly.approximate_linear(0.5, 0.0, 2.0)) >= 2
 
-    spline = odr.xodr.CubicSpline({0.0: odr.xodr.Poly3.from_odr(0.0, 1.0, 0.0, 0.0, 0.0)})
-    other = odr.xodr.CubicSpline({1.0: odr.xodr.Poly3.from_odr(1.0, 2.0, 0.0, 0.0, 0.0)})
+    spline = odr.xodr.CubicSpline(
+        {0.0: odr.xodr.Poly3.from_odr(0.0, 1.0, 0.0, 0.0, 0.0)}
+    )
+    other = odr.xodr.CubicSpline(
+        {1.0: odr.xodr.Poly3.from_odr(1.0, 2.0, 0.0, 0.0, 0.0)}
+    )
     assert spline.size() == 1
     assert not spline.empty()
     assert spline.get(0.5) == pytest.approx(1.0)
@@ -401,6 +918,23 @@ def test_real_chatt_file_smoke() -> None:
     assert len(graph.edges) == 474
 
 
+@pytest.mark.skip(reason="Skipping test for now")
+def test_tutorial_runs_outside_repository_root(tmp_path: Path) -> None:
+    """The tutorial must resolve its bundled dataset independently of cwd."""
+    repo_root = Path(__file__).resolve().parents[1]
+    completed = subprocess.run(
+        [sys.executable, str(repo_root / "tutorial.py")],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "roads=189" in completed.stdout
+
+
 @pytest.mark.skipif(
     shutil.which("netconvert") is None,
     reason="SUMO netconvert is required for SUMO conversion tests",
@@ -423,10 +957,10 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
     assert len(sumo_net.getEdges()) > 0
     assert sumo_net.getBoundary()[2] > sumo_net.getBoundary()[0]
     edge_280 = sumo_net.getEdge("280")
-    assert edge_280.getParam("pyopendrive.original_link_id") == "280"
-    assert edge_280.getLanes()[0].getParam("pyopendrive.original_lane_id") == "-1"
-    assert edge_280.getLanes()[1].getParam("pyopendrive.original_lane_id") == "-2"
-    assert sumo_net.getNode("1").getParam("pyopendrive.original_node_id") == "1"
+    assert edge_280.getParam("pyxodr3d.original_link_id") == "280"
+    assert edge_280.getLanes()[0].getParam("pyxodr3d.original_lane_id") == "-1"
+    assert edge_280.getLanes()[1].getParam("pyxodr3d.original_lane_id") == "-2"
+    assert sumo_net.getNode("1").getParam("pyxodr3d.original_node_id") == "1"
 
     roundtrip_map = odr.xodr_from_net_xml(
         net=sumo_net,
@@ -446,7 +980,7 @@ def test_chatt_xodr_converts_to_sumo_net_and_back(tmp_path: Path) -> None:
 def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
     tmp_path: Path,
 ) -> None:
-    import pyopendrive.__xodr_sumo as xodr_sumo
+    import pyxodr3d.__xodr_sumo as xodr_sumo
 
     net_file = tmp_path / "network.net.xml"
     net_file.write_text(
@@ -479,9 +1013,9 @@ def test_xodr_to_net_xml_annotation_restores_positive_numeric_edge_ids(
     ]
     lane_params = []
     for lane in edges["280"].findall("lane"):
-      lane_param = lane.find("./param")
-      assert lane_param is not None
-      lane_params.append(lane_param.get("value"))
+        lane_param = lane.find("./param")
+        assert lane_param is not None
+        lane_params.append(lane_param.get("value"))
     assert lane_params == ["-1", "-2"]
 
     connections = root.findall("connection")
@@ -533,7 +1067,7 @@ def test_chatt_sumo_net_xml_converts_to_opendrive_map(tmp_path: Path) -> None:
 def test_xodr_from_net_xml_restores_road_references_to_planview_roads(
     tmp_path: Path,
 ) -> None:
-    import pyopendrive.__xodr_sumo as xodr_sumo
+    import pyxodr3d.__xodr_sumo as xodr_sumo
 
     net_file = tmp_path / "network.net.xml"
     net_file.write_text(

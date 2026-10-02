@@ -39,7 +39,7 @@ jobs:
 
       - name: Run pylint report
         run: |
-          python -m pylint pyopendrive tests --reports=y --output-format=text > pylint-report-${{ matrix.python-version }}.txt || true
+          python -m pylint pyxodr3d tests --reports=y --output-format=text > pylint-report-${{ matrix.python-version }}.txt || true
 
       - name: Upload pylint report
         uses: actions/upload-artifact@v4

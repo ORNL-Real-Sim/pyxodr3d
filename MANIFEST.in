@@ -4,5 +4,5 @@ include README.md
 include README_license_section.md
 recursive-include third_party *
 recursive-include docs *
-recursive-include pyopendrive/__web *
-recursive-include pyopendrive/web *
+recursive-include pyxodr3d/__web *
+recursive-include pyxodr3d/web *

@@ -1,0 +1,42 @@
+"""Command line entry point for the pyxodr3d web editor.
+
+Run this module with ``python -m pyxodr3d.web``.  It starts the small local
+HTTP server defined in :mod:`pyxodr3d.web` and keeps it alive until the user
+presses Ctrl+C.
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+from . import DEFAULT_XODR, run_server
+
+
+def main() -> None:
+    """Parse command line options and serve the browser editor."""
+    parser = argparse.ArgumentParser(description="Run the pyxodr3d web editor.")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", default=8765, type=int)
+    parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--xodr", default=str(DEFAULT_XODR))
+    args = parser.parse_args()
+
+    default_xodr = Path(args.xodr) if args.xodr else None
+    server, url = run_server(
+        host=args.host,
+        port=args.port,
+        open_browser=not args.no_browser,
+        default_xodr=default_xodr,
+    )
+    print(url, flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()
